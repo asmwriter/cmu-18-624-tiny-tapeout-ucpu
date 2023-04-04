@@ -1,10 +1,15 @@
 module alu_unit_interface #(
     parameter ALU_WIDTH = 8
     parameter ALU_OPS = 8,
-    parameter A_REG_MAP = ,
-    parameter B_REG_MAP = 17
+    parameter A_REG_MAP = 16,
+    parameter B_REG_MAP = 17,
+    parameter CONTROL_STATES = 3,
+    parameter DECODE = 0,
+    parameter EXECUTE1 = 1,
+    parameter EXECUTE2 = 2
 )    (
         sysclk, 
+        control_state,
         A_bus, B_bus, 
         alu_op, alu_en,
         reg_src,
@@ -12,17 +17,25 @@ module alu_unit_interface #(
         cc_equal, 
         alu_result);
 
-    input logic sysclk, alu_en;
+    input logic sysclk;
+    input logic alu_en;
+    input logic [$clog2(CONTROL_STATES)-1:0] control_state;
     input logic [$clog2(ALU_OPS)-1:0] alu_op;
     input logic [ALU_WIDTH-1:0] A_bus, B_bus;
 
+    /*Registered ALU outputs*/
     output logic cc_greater, cc_equal;
     output logic [ALU_WIDTH-1:0] alu_result;
 
     logic [ALU_WIDTH-1:0] A_reg, B_reg;
 
-    assign A_reg_en = (alu_en == 1'b1 && reg_src == A_REG_MAP);
-    assign B_reg_en = (alu_en == 1'b1 && reg_src == B_REG_MAP);
+    /*Control signals for loading from A_bus and B_bus*/
+    logic A_reg_en, B_reg_en, alu_result_load;
+    assign A_reg_en = (alu_en == 1'b1 && reg_src == A_REG_MAP && control_state == EXECUTE1);
+    assign B_reg_en = (alu_en == 1'b1 && reg_src == B_REG_MAP && control_state == EXECUTE1);
+    assign alu_result_load = (alu_en && control_state == EXECUTE2);
+
+    /*Control signal to */
 
     always @(posedge clk) begin
         if(A_reg_en) begin
@@ -31,14 +44,25 @@ module alu_unit_interface #(
         if(B_reg_en) begin
             B_reg <= B_bus;
         end
+        if(alu_en && control_state == EXECUTE2) begin
+            alu_result <= alu_result_out;
+            cc_greater <= cc_greater_out;
+            cc_equal   <= cc_equal_out;
+        end
+        
     end
 
+    /*carry in*/
     logic carry_in;
     assign carry_in = 1'b0;
+
+    logic [ALU_WIDTH-1:0] alu_result_out;
+    logic cc_greater_out, cc_equal_out;
+
     //ALU module
     alu_unit alu_module(.A(A_reg), .B(B_reg), .carry_in(carry_in), 
-                    .alu_op(alu_op), .alu_result(alu_result), 
-                    .greater(cc_greater), .equal(cc_equal));
+                    .alu_op(alu_op), .alu_result(alu_result_out), 
+                    .greater(cc_greater_out), .equal(cc_equal_out));
 endmodule
 
 module alu_unit #(
@@ -99,3 +123,4 @@ module alu_unit #(
         endcase
     end
 endmodule
+
