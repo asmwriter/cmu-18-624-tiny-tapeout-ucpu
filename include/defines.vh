@@ -1,9 +1,9 @@
 /*CPU States*/
 `define CPU_STATES          10
-`define FETCH_MINST         1
-`define DECODE              2
-`define EXECUTE1            3
-`define EXECUTE2            4 
+`define FETCH_MINST         4'd1
+`define DECODE              4'd2
+`define EXECUTE1            4'd3
+`define EXECUTE2            4'd4 
 //No. of micro registers
 `define MREG_COUNT          'd16
 /*Micro-registers Mapping*/

@@ -21,6 +21,7 @@ module mdecode_reg (
     reg_file_en_md,
     reg_file_rw_md,
     is_branch_md,
+
     reg_src,
     reg_dst,
     imm,
@@ -33,31 +34,31 @@ module mdecode_reg (
     is_branch,
 );
     /*Fields from decoder unit*/
-    input logic sys_clk, sys_reset;
-    input logic [3:0] reg_src_md, reg_dst_md;
-    input logic [10:0] imm_md;
-    input logic [9:0] branch_target_md;
+    input  sys_clk, sys_reset;
+    input  [3:0] reg_src_md, reg_dst_md;
+    input  [10:0] imm_md;
+    input  [9:0] branch_target_md;
     /*Control signals and bus args*/
-    input logic is_imm_active_md;
-    input logic alu_en_md;
-    input logic [$clog2(`ALU_OPS)-1:0] alu_op_md;
-    input logic reg_file_en_md, reg_file_rw_md;
-    input logic is_branch_md;
+    input  is_imm_active_md;
+    input  alu_en_md;
+    input  [$clog2(`ALU_OPS)-1:0] alu_op_md;
+    input  reg_file_en_md, reg_file_rw_md;
+    input  is_branch_md;
 
     /*Declare registers*/
-    output logic [3:0] reg_src, reg_dst;
-    output logic [10:0] imm;
-    output logic [9:0] branch_target;
+    output reg [3:0] reg_src, reg_dst;
+    output reg [10:0] imm;
+    output reg [9:0] branch_target;
 
     /*Registered control signals*/
-    output logic is_imm_active;
+    output reg is_imm_active;
 
     /*Registered args*/
-    output logic alu_en;
-    output logic [$clog2(`ALU_OPS)-1:0] alu_op;
-    output logic reg_file_en, reg_file_rw;
-    //output logic mem_en, mem_rw;
-    output logic is_branch;
+    output reg alu_en;
+    output reg [$clog2(`ALU_OPS)-1:0] alu_op;
+    output reg reg_file_en, reg_file_rw;
+    //output wire mem_en, mem_rw;
+    output reg is_branch;
 
     /*Register all fields, control signals and args*/
     /*Yet to implement sys_reset*/
@@ -72,6 +73,7 @@ module mdecode_reg (
             alu_op <= 0;
             reg_file_en <= 0;
             reg_file_rw <= 0;
+            is_branch <= 0;
         end
         else begin
             reg_src <= reg_src_md;
@@ -107,16 +109,16 @@ module micro_reg_file (
 );
 
     /*Registered reg file addr select*/
-    logic [`REG_SPEC_WIDTH-1:0] reg_sel_in;
+    reg [`REG_SPEC_WIDTH-1:0] reg_sel_in;
 
     /*Registered reg file write data*/
-    logic [`DATA_WIDTH-1:0] reg_wr_data_in;
+    reg [`DATA_WIDTH-1:0] reg_wr_data_in;
 
     /*Registered reg file read data*/
-    logic [`DATA_WIDTH-1:0] reg_rd_data_out;
+    reg [`DATA_WIDTH-1:0] reg_rd_data_out;
 
     /*Declare register file*/
-    logic [`DATA_WIDTH-1:0] mreg_file[`REG_FILE_DEPTH];
+    reg [`DATA_WIDTH-1:0] mreg_file[`REG_FILE_DEPTH-1:0];
 
     /*reg_rd_data output*/
     assign reg_rd_data = reg_rd_data_out;

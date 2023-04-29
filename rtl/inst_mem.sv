@@ -1,9 +1,9 @@
 `include "defines.vh"
 /*
     Module accepts 32 bits of instruction serially
-
+    Order of bits: most significant bit first
 */
-module instr_reg (
+module instr_reg_interface (
     sys_clk,
     instr_in,
     instr_reg,
@@ -17,7 +17,7 @@ module instr_reg (
             instr_reg <= 32'b0;
         end
         else begin
-            instr_reg <= {instr_reg[31:1], instr_in};
+            instr_reg <= {instr_reg[30:0], instr_in};
         end
     end
 endmodule

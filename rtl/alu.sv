@@ -9,24 +9,25 @@ module alu_unit_interface (
         alu_op,
         cc_greater,
         cc_equal, 
-        alu_result);
+        alu_result
+    );
 
-    input logic sys_clk, sys_reset;
-    input logic alu_en_A_reg, alu_en_B_reg;
-    input logic [$clog2(`CPU_STATES)-1:0] cpu_state;
-    input logic [$clog2(`ALU_OPS)-1:0] alu_op;
-    input logic [`ALU_WIDTH-1:0] A_bus, B_bus;
+    input sys_clk, sys_reset;
+    input alu_en_A_reg, alu_en_B_reg;
+    input [$clog2(`CPU_STATES)-1:0] cpu_state;
+    input [$clog2(`ALU_OPS)-1:0] alu_op;
+    input [`ALU_WIDTH-1:0] A_bus, B_bus;
 
-    logic alu_en;
+    wire alu_en;
 
     /*Registered ALU outputs*/
-    output logic cc_greater, cc_equal;
-    output logic [`ALU_WIDTH-1:0] alu_result;
+    output reg cc_greater, cc_equal;
+    output reg [`ALU_WIDTH-1:0] alu_result;
 
-    logic [`ALU_WIDTH-1:0] A_reg, B_reg;
+    reg [`ALU_WIDTH-1:0] A_reg, B_reg;
 
     /*Control signals for loading from A_bus and B_bus*/
-    logic A_reg_en, B_reg_en, alu_result_load;
+    // wire A_reg_en, B_reg_en, alu_result_load;
 
     assign alu_en = alu_en_A_reg || alu_en_B_reg;
     // assign A_reg_en = (alu_en == 1'b1 && reg_src == A_REG_MAP && cpu_state == `EXECUTE1);
@@ -62,13 +63,14 @@ module alu_unit_interface (
     end
 
     /*carry in*/
-    logic carry_in;
+    wire carry_in;
     assign carry_in = 1'b0;
 
     //ALU module
     alu_unit alu(.A(A_reg), .B(B_reg), .carry_in(carry_in), 
                     .alu_op(alu_op), .alu_result(alu_result_out), 
                     .greater(cc_greater_out), .equal(cc_equal_out));
+
 endmodule
 
 module alu_unit (
@@ -80,11 +82,15 @@ module alu_unit (
     greater,
     equal
 );
-    input logic [`ALU_WIDTH-1:0] A,B;
-    input logic carry_in;
-    input logic [$clog2(`ALU_OPS)-1:0] alu_op;
-    output logic [`ALU_WIDTH-1:0] alu_result;
-    output logic greater, equal;
+    input [`ALU_WIDTH-1:0] A,B;
+    input carry_in;
+    input [$clog2(`ALU_OPS)-1:0] alu_op;
+    output [`ALU_WIDTH-1:0] alu_result;
+    output greater, equal;
+
+    reg [`ALU_WIDTH-1:0] alu_result_tmp;
+
+    assign alu_result = alu_result_tmp;
 
     /*
         alu_op_md
@@ -99,31 +105,50 @@ module alu_unit (
         1000 - asr
         1001 - cmp
     */
+
+    wire [`ALU_WIDTH-1:0] zero, a_plus_b, a_minus_b, a_or_b, a_and_b, a_negated;
+    wire [`ALU_WIDTH-1:0] a_lfs, a_rfs, a_arfs;
+
+    assign a_plus_b = A + B;
+    assign a_minus_b = A - B;
+    assign a_or_b = A | B;
+    assign a_and_b = A & B;
+    assign a_negated = ~A;
+    assign a_lfs = A << B;
+    assign a_rfs = A >> B;
+    assign a_arfs = A >>> B;
+    assign zero = {`ALU_WIDTH{1'b0}};
+    
     always @(*) begin
         case (alu_op)
-            4'b0000: alu_result = {`ALU_WIDTH{1'b0}};
-            4'b0001: alu_result = A+B;
-            4'b0010: alu_result = A-B;
-            4'b0011: alu_result = A|B;
-            4'b0100: alu_result = A&B;
-            4'b0101: alu_result = ~A;
-            4'b0110: alu_result = A<<B;
-            4'b0111: alu_result = A>>B;
-            4'b1000: alu_result = A>>>B;
-            default: alu_result = {`ALU_WIDTH{1'b0}};
+            // 4'b0000: alu_result = {`ALU_WIDTH{1'b0}};
+            4'b0000: alu_result_tmp = zero;
+            4'b0001: alu_result_tmp = a_plus_b;
+            4'b0010: alu_result_tmp = a_minus_b;
+            4'b0011: alu_result_tmp = a_or_b;
+            4'b0100: alu_result_tmp = a_and_b;
+            4'b0101: alu_result_tmp = a_negated;
+            4'b0110: alu_result_tmp = a_lfs;
+            4'b0111: alu_result_tmp = a_rfs;
+            4'b1000: alu_result_tmp = a_arfs;
+            default: alu_result_tmp = zero;
         endcase
     end
+
+    reg a_greater_b, a_equal_b;
+    assign greater = a_greater_b;
+    assign equal = a_equal_b;
+
     always @(*) begin
         case (alu_op)
             4'b1001: begin
-                greater = (A>B);
-                equal = (A==B);
+                a_greater_b = (A>B);
+                a_equal_b = (A==B);
             end
             default: begin
-                greater = 1'b0;
-                equal = 1'b0;
+                a_greater_b = 1'b0;
+                a_equal_b = 1'b0;
             end
-            
         endcase
     end
 endmodule

@@ -21,8 +21,13 @@ tb_decoder_iv:
 	vcs -sverilog -R +lint=all -debug_access+all -top tb_micro_inst_decoder +incdir+include +lint=all rtl/decode.v tb/tb_micro_decoder.sv
 
 tb_alu_iv:
-	vcs -sverilog -R +lint=all -debug_access+all -top tb_alu_unit +incdir+include +lint=all rtl/alu.sv tb/tb_alu.sv
+	vcs -sverilog -R +lint=all -debug_access+all -top tb_alu_unit +incdir+include +lint=all +error+20 rtl/alu.sv tb/tb_alu.sv
 
+tb_micro_reg:
+	vcs -sverilog -R +lint=all -debug_access+all -top tb_micro_reg_file_unit +incdir+include +lint=all +error+20 rtl/micro_reg.sv tb/tb_micro_reg.sv
+
+tb_instr_reg_interface:
+	vcs -sverilog -R +lint=all -debug_access+all -top tb_instr_reg +incdir+include +lint=all +error+20 rtl/inst_mem.sv tb/tb_instr_mem.sv
 
 clean:
 	rm -rf simv.daidir/
@@ -35,7 +40,7 @@ clean:
 	rm -f .__*
 	rm -f *.vcd
 	rm -f log
-	rm *.out
+	rm -f *.out
 	
 
 
