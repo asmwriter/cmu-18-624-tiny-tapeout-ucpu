@@ -55,3 +55,36 @@ module data_mem_interface #(
         end
     end
 endmodule
+
+
+module data_mem_addr_serialise (
+    sys_clk,
+    sys_reset,
+    cpu_state,
+    //Input data_mem addr
+    data_mem_addr,
+    //Output stream
+    data_mem_addr_stream
+);
+
+    input sys_clk, sys_reset;
+    input [$clog2(`CPU_STATES)-1:0] cpu_state;
+    input [`PC_WIDTH-1:0] data_mem_addr;
+    output data_mem_addr_stream;
+    
+    reg [$clog2(`PC_WIDTH)-1:0] current_bit_index;
+
+    assign data_mem_addr_stream = (sys_reset == 1'b1) ? 1'b0 : (( cpu_state == `SEND_PC ) ? data_mem_addr[current_bit_index] : 1'b0);
+
+    always @(posedge sys_clk) begin
+        if(sys_reset) begin
+           current_bit_index <= (1<<$clog2(`PC_WIDTH)) -1;
+        end
+        else begin
+            //Begin sending the address bits in a serial fashion
+            if(cpu_state == `SEND_PC) begin
+                current_bit_index <= current_bit_index - 1'b1;
+            end
+        end
+    end
+endmodule

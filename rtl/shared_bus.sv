@@ -1,5 +1,54 @@
 `include "defines.vh"
 
+module reg_src_dst_cmp(
+    reg_dst,
+    m_imm,
+    A,
+    B,
+    cc_greater,
+    cc_equal,
+    alu_result,
+    is_m_imm_active,
+    is_branch,
+    should_branch
+);
+        input [`ADDR_WIDTH-1:0] reg_dst;
+        input [`IMM_WIDTH-1:0] m_imm;
+        input [`DATA_WIDTH-1:0] A, B;
+        input cc_greater, cc_equal;
+        input [`DATA_WIDTH-1:0] alu_result;
+        input is_m_imm_active, is_branch;
+        output should_branch;
+        reg [`DATA_WIDTH-1:0] reg_dst_content;
+
+        always_comb begin
+            if(reg_dst == `CC_GREATER_MAP) begin
+                reg_dst_content = {7'b0, cc_greater};
+            end
+            else if(reg_dst == `CC_EQUAL_MAP) begin
+                reg_dst_content = {7'b0, cc_equal};
+            end
+            else if(reg_dst == `A_REG_MAP) begin
+                reg_dst_content = A;
+            end
+            else if(reg_dst == `B_REG_MAP) begin
+                reg_dst_content = B;
+            end
+            else if(reg_dst == `ALU_RESULT_MAP) begin
+                reg_dst_content = alu_result;
+            end
+            else if(reg_dst == `IS_IMM_MAP) begin
+                reg_dst_content = {7'b0, is_m_imm_active};
+            end
+            else begin
+                reg_dst_content = 8'b0;
+            end
+        end
+
+    assign should_branch = (is_branch && reg_dst_content == m_imm) ? 1'b1 : 1'b0;
+
+endmodule
+
 module write_bus (
     minstr_type,
     //fields in IR
@@ -10,16 +59,19 @@ module write_bus (
     //destination register
     reg_dst,
     //bus args
-    is_imm_active,
-    reg_file_en,
-    reg_file_rw,
-    alu_en,
-    alu_op,
-    is_branch,
+    // is_m_imm_active,
+    // reg_file_en,
+    // reg_file_rw,
+    // alu_en,
+    // alu_op,
+    // is_branch,
+    should_branch,
     //producer - micro-decode registers 
-    imm, 
+    imm,
+    reg_dst_instr,
+    m_imm, 
     m_pc,
-    branch_target,    
+    mbranch_target,    
     //producer - ALU operations
     alu_result,
     cc_greater,
@@ -30,29 +82,33 @@ module write_bus (
 );
 
     localparam MINST_TYPE_WIDTH = $clog2(`MINST_COUNT);
+    parameter BRANCH_ADDR_WIDTH = 8;
     
-    input logic [`ADDR_WIDTH-1:0] reg_src, reg_dst;
-    input logic [$clog2(`REG_FILE_DEPTH)-1:0] rs1, rs2;
-    input logic [`ALU_WIDTH-1:0] alu_result;
-    input logic [MINST_TYPE_WIDTH-1:0] minstr_type;
-    input logic [`DATA_WIDTH-1:0] reg_rd_data;
+    input [`ADDR_WIDTH-1:0] reg_src, reg_dst;
+    input [$clog2(`REG_FILE_DEPTH)-1:0] rs1, rs2;
+    input [`ALU_WIDTH-1:0] alu_result;
+    input [MINST_TYPE_WIDTH-1:0] minstr_type;
+    input [`DATA_WIDTH-1:0] reg_rd_data;
+
     //bus args
-    input logic is_imm_active, reg_file_en, reg_file_rw, alu_en, is_branch;
-    input logic [$clog2(`ALU_OPS)-1:0] alu_op;
+    input should_branch;
+
+    //input logic [$clog2(`ALU_OPS)-1:0] alu_op;
 
     //Other registers
-    input logic cc_greater, cc_equal;
+    input cc_greater, cc_equal;
 
     //producer - micro-decode registers 
-    input logic [`MPC_WIDTH-1:0] m_pc;
-    input logic [`IMM_WIDTH-1:0] imm;
-    input logic [`BRANCH_ADDR_WIDTH-1:0] branch_target; 
+    input [`MPC_WIDTH-1:0] m_pc;
+    input [`IMM_WIDTH-1:0] imm, m_imm;
+    input [3:0] reg_dst_instr;
+    input [BRANCH_ADDR_WIDTH-1:0] mbranch_target; 
 
     /*
     Micro Registers which are producers
     - m_pc 
-    - imm
-    - branch_target
+    - m_imm
+    - mbranch_target
 
     Data path registers which are producers
     - alu_result
@@ -62,52 +118,53 @@ module write_bus (
     - ld_data (to be implemented) 
     */
 
-    output logic [`WRITE_WIDTH-1:0] write_bus_out;
-    
+    output reg [`WRITE_WIDTH-1:0] write_bus_out;
+
     always_comb begin
         //Fetching RS1 or RS2 from the register file
-        if(reg_src == `RS1_MAP) begin
-            write_bus_out = rs1;
+        if(minstr_type == 3'b011 ) begin
+            write_bus_out = (should_branch == 1'b1) ? mbranch_target: m_pc; 
         end
-        else if(reg_src == `RS2_MAP) begin
-            write_bus_out = rs2;
+        else if (minstr_type == 3'b100) begin
+            write_bus_out = mbranch_target;
         end
-        //Immediate value register
-        else if(reg_src == `IMM_MAP) begin
-            write_bus_out = imm;
-        end
-        //Return instruction
-        else if(reg_src == `M_PC_MAP) begin
-            write_bus_out = m_pc;
-        end
-        //Branch instruction
-        else if(reg_src == `BRANCH_TARGET_MAP) begin
-            write_bus_out = branch_target;
-        end
-        //Result of ALU operation
-        else if(reg_src == `ALU_RESULT_MAP) begin
-            write_bus_out = alu_result;
-        end 
-        //Value from Register file 
-        else if(reg_src == `REG_RD_DATA_MAP) begin
-            write_bus_out = reg_rd_data;
-        end
-        else begin
-            if(minstr_type == 3'b011 ) begin
-                if(reg_dst == `CC_GREATER_MAP) begin
-                    write_bus_out = cc_greater == 1'b1 ? branch_target: m_pc;
-                end
-                else begin
-                    write_bus_out = (cc_equal == 1'b1) ? branch_target: m_pc;
-                end
+        else begin        
+            if(reg_src == `RS1_MAP) begin
+                write_bus_out = rs1;
             end
-            else if (minstr_type == 3'b100) begin
-                write_bus_out = branch_target;
+            else if(reg_src == `RS2_MAP) begin
+                write_bus_out = rs2;
+            end
+            //Immediate value register
+            else if(reg_src == `IMM_MAP) begin
+                write_bus_out = m_imm;
+            end
+            //Return instruction
+            else if(reg_src == `M_PC_MAP) begin
+                write_bus_out = m_pc;
+            end
+            //Branch instruction
+            else if(reg_src == `BRANCH_TARGET_MAP) begin
+                write_bus_out = mbranch_target;
+            end
+            //Result of ALU operation
+            else if(reg_src == `ALU_RESULT_MAP) begin
+                write_bus_out = alu_result;
+            end 
+            //Value from Register file 
+            else if(reg_src == `REG_RD_DATA_MAP) begin
+                write_bus_out = reg_rd_data;
+            end
+            else if(reg_src == `IMM_INSTR_MAP) begin
+                write_bus_out = imm;
+            end
+            else if(reg_src == `RD_MAP) begin
+                write_bus_out = reg_dst_instr;
             end
             else begin
                 write_bus_out = 8'b0;
-            end
-        end 
+            end 
+        end
 
     end
     
@@ -156,7 +213,7 @@ module read_bus #(
     //destination register
     reg_dst,
     //bus args
-    is_imm_active,
+    is_m_imm_active,
     reg_file_en,
     reg_file_rw,
     alu_en,

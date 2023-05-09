@@ -16,9 +16,17 @@ rtl_mdecode_reg:
 rtl_inst_reg:
 	vcs -sverilog -R +lint=all -debug_access+all -top instr_reg +incdir+include +lint=all rtl/inst_mem.sv 
 
+rtl_inst_mem:
+	vcs -sverilog -R +lint=all -debug_access+all +incdir+include +lint=all rtl/inst_mem.sv 
+
+rtl_cpu_fsm:
+	vcs -sverilog -R +lint=all -debug_access+all -top cpu_fsm +incdir+include +lint=all rtl/mcpu.sv 
+
+rtl_cpu_top:
+	vcs -sverilog -R +lint=all -debug_access+all -top top_cpu +incdir+include +lint=all rtl/mcpu.sv rtl/inst_mem.sv rtl/decode.v rtl/micro_reg.sv rtl/shared_bus.sv rtl/alu.sv
 
 tb_decoder_iv:
-	vcs -sverilog -R +lint=all -debug_access+all -top tb_micro_inst_decoder +incdir+include +lint=all rtl/decode.v tb/tb_micro_decoder.sv
+	vcs -sverilog -R +lint=all -debug_access+all -top tb_micro_inst_decoder +incdir+include +lint=all rtl/decode.v tb/tb_micro_decoder.sv rtl/micro_reg.sv 
 
 tb_alu_iv:
 	vcs -sverilog -R +lint=all -debug_access+all -top tb_alu_unit +incdir+include +lint=all +error+20 rtl/alu.sv tb/tb_alu.sv
@@ -28,6 +36,12 @@ tb_micro_reg:
 
 tb_instr_reg_interface:
 	vcs -sverilog -R +lint=all -debug_access+all -top tb_instr_reg +incdir+include +lint=all +error+20 rtl/inst_mem.sv tb/tb_instr_mem.sv
+
+tb_cpu_fsm:
+	vcs -sverilog -R +lint=all -debug_access+all -top tb_cpu_fsm +incdir+include +lint=all rtl/mcpu.sv tb/tb_cpu_fsm_interface.sv 
+
+tb_cpu_top:
+	vcs -sverilog -R +lint=all -debug_access+all -top tb_topcpu +incdir+include +lint=all tb/tb_top_cpu.sv rtl/mcpu.sv rtl/inst_mem.sv rtl/decode.v rtl/micro_reg.sv rtl/shared_bus.sv rtl/alu.sv
 
 clean:
 	rm -rf simv.daidir/

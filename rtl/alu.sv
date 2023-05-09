@@ -9,7 +9,9 @@ module alu_unit_interface (
         alu_op,
         cc_greater,
         cc_equal, 
-        alu_result
+        alu_result,
+        A_reg,
+        B_reg
     );
 
     input sys_clk, sys_reset;
@@ -24,7 +26,7 @@ module alu_unit_interface (
     output reg cc_greater, cc_equal;
     output reg [`ALU_WIDTH-1:0] alu_result;
 
-    reg [`ALU_WIDTH-1:0] A_reg, B_reg;
+    output reg [`ALU_WIDTH-1:0] A_reg, B_reg;
 
     /*Control signals for loading from A_bus and B_bus*/
     // wire A_reg_en, B_reg_en, alu_result_load;
@@ -32,7 +34,7 @@ module alu_unit_interface (
     assign alu_en = alu_en_A_reg || alu_en_B_reg;
     // assign A_reg_en = (alu_en == 1'b1 && reg_src == A_REG_MAP && cpu_state == `EXECUTE1);
     // assign B_reg_en = (alu_en == 1'b1 && reg_src == B_REG_MAP && cpu_state == `EXECUTE1);
-    assign alu_result_load = (alu_en && cpu_state == `EXECUTE2);
+    // assign alu_result_load = (alu_en && cpu_state == `EXECUTE2);
 
     logic [`ALU_WIDTH-1:0] alu_result_out;
     logic cc_greater_out, cc_equal_out;

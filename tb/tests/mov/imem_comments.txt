@@ -1,0 +1,4 @@
+2 operand instruction
+type  I rd   rs1  imm
+mov r2, 5
+01001 1 0010 0000 000000000000000101

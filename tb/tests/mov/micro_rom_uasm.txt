@@ -1,0 +1,51 @@
+Micro-instruction format
+     _________________________________
+    |43:41|40:36|35:31|30:20|19:10|9:0|
+    |_________________________________| 
+    Fields:
+    43:41 - Micro-instruction type
+    40:36 - Source register
+    35:31 - Destination register
+    30:20 - Immediate value (consider only 27:20)
+    19:10 - Branch target micro PC ( consider only 10:17 )
+    9:0   - Bus arguments
+        args[0] - alu_en_A
+        args[8] - alu_en_B
+        args[3:1] - alu_op
+            0000 - nop
+            0001 - add
+            0010 - sub
+            0011 - or
+            0100 - and
+            0101 - not
+            0110 - lsl
+            0111 - lsr
+            1000 - asr
+            1001 - cmp
+        args[4] - reg_file_en (1)
+        args[5] - reg_file_rw (0/1)
+
+    
+micro-asm:
+//011 00000 01000 00000000001 0000000100 0000000000
+0: mbeq I, 1, .imm
+
+/* second operand is a register */
+//000 01111 00101 00000000000 0000000000 0000010000
+1: mmov regSrc, rs2, <read>
+//000 00111 00110 00000000000 0000000000 0000110000
+2: mmov regData, regVal
+//100 00000 00000 00000000000 0000000101 0000000000
+3: mb .rw
+/* second operand is an immediate */
+imm:
+//000 10010 00110 00000000000 0000000000 0000010000
+4:mmov regData, immx
+
+/* write to the register file*/
+.rw:
+//000 10000 00101 00000000000 0000000000 0000110000
+5:mmov regSrc, rd, <write>
+6:nop
+7:nop
+8:nop
